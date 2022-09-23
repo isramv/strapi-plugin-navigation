@@ -267,9 +267,6 @@ const commonService: (context: StrapiContext) => ICommonService = ({ strapi }) =
           Object.entries(groupedItems)
             .map(async ([model, related]) => {
 
-              const related_id = related[0]['id']
-              const path :any = await strapi.query('plugin::url-alias.path').findOne(related_id)
-
               const relationData = await strapi
                 .query<StrapiContentType<ToBeFixed>>(model)
                 .findMany({
@@ -278,13 +275,28 @@ const commonService: (context: StrapiContext) => ICommonService = ({ strapi }) =
                   },
                   populate: isNil(populate) ? config.contentTypesPopulate[model] || [] : parsePopulateQuery(populate)
                 });
+
+              const ids: any = map(relationData, 'id')
+              const urlAliasIds: any = await strapi.query<any>('plugin::url-alias.path').findMany({
+                where: {
+                  id: {
+                    $in: ids
+                  }
+                }
+              })
+
               return relationData
                 .flatMap(_ =>
                   Object.assign(
                     _,
                     {
                       __contentType: model,
-                      pathAlias: path.url_path,
+                      pathAlias: urlAliasIds.find((alias: any) => {
+                        if (_.id === alias.id) {
+                          return alias.url_path
+                        }
+                        return null
+                      }),
                       navigationItemId: related.find(
                         ({ related_id }) => related_id === _.id!.toString())?.navigationItemId,
                     },
