@@ -266,6 +266,10 @@ const commonService: (context: StrapiContext) => ICommonService = ({ strapi }) =
         await Promise.all(
           Object.entries(groupedItems)
             .map(async ([model, related]) => {
+
+              const related_id = related[0]['id']
+              const path :any = await strapi.query('plugin::url-alias.path').findOne(related_id)
+
               const relationData = await strapi
                 .query<StrapiContentType<ToBeFixed>>(model)
                 .findMany({
@@ -280,6 +284,7 @@ const commonService: (context: StrapiContext) => ICommonService = ({ strapi }) =
                     _,
                     {
                       __contentType: model,
+                      pathAlias: path.url_path,
                       navigationItemId: related.find(
                         ({ related_id }) => related_id === _.id!.toString())?.navigationItemId,
                     },
